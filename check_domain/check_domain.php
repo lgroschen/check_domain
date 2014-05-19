@@ -281,8 +281,9 @@ function fullusage() {
 print(
 	"check_domain.php - v".VERSION."
         Copyright (c) 2005 Tomàs Núñez Lirola <tnunez@criptos.com>, 
-                      2009-2014 Elan Ruusamäe <glen@pld-linux.org>
-	Under GPL v2 License
+                      2009-2014 Elan Ruusamäe <glen@pld-linux.org>,
+                      2014 Nagios Enterprises <lgroschen@nagios.com>
+		Under GPL v2 License
 
 	This plugin checks the expiration date of a domain name.
 
