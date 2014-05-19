@@ -6,142 +6,158 @@
 //  
 // $Id: $lgroschen@nagios.com
 
-define( "PROGRAM", 'check_domain.php' );
-define( "VERSION", '1.0.0' );
-define( "STATUS_OK",       0 );
-define( "STATUS_WARNING",  1 );
-define( "STATUS_CRITICAL", 2 );
-define( "STATUS_UNKNOWN",  3 );
+define("PROGRAM", 'check_domain.php');
+define("VERSION", '1.0.0');
+define("STATUS_OK", 0);
+define("STATUS_WARNING",  1);
+define("STATUS_CRITICAL", 2);
+define("STATUS_UNKNOWN", 3);
+define("DEBUG", true);
 
-$domain = "";
-$whois = "";
-$whois_path = "";
-$shortopts = "o";
-$shortopts .= "h::";
-$shortopts .= "d:";
-$shortopts .= "w:";
-$shortopts .= "c:";
-$shortopts .= "P::";
-$longopts = array(
-	"help::",
-	"domain:",
-	"warning:",
-	"critical:",
-	"path::"
-);
 
-//get command options
-$options = getopt($shortopts, $longopts);
 
-//find jwhois path and set to variable
-exec('which whois 2>&1', $execout, $return_var);
-$whois_path = $execout[0];
-
-if ($return_var != 0) {
-    echo 'It looks like you are missing jWhois on your Nagios XI server. Run: <p><b>yum install jwhois -y</b></p> as root user on your Nagios XI server.';
+function parse_args() {
+    $specs = array(array('short' => 'h',
+                         'long' => 'help',
+                         'required' => false),
+                   array('short' => 'd',
+                         'long' => 'domain', 
+                         'required' => true),
+                   array('short' => 'c', 
+                         'long' => 'critical', 
+                         'required' => false),
+                   array('short' => 'w', 
+                         'long' => 'warning', 
+                         'required' => false)
+    );
+    
+    $options = parse_specs($specs);
+    return $options;
 }
 
-if ($whois_path) {
-	if(file_exists($whois_path) && exec($whois_path)) {
-		$whois = $whois_path;
-	} elseif(exec($whois_path."/whois")) {
-		$whois = $whoispath."/whois";
-	}
+function parse_specs($specs) {
 
-	if(!file_exists($whois)) {
-		die($STATE_UNKNOWN." UNKNOWN - Unable to find whois binary, you specified an incorrect path");
-	}
+    $shortopts = '';
+    $longopts = array();
+    $opts = array();
 
-} else {
-	if (!exec("type whois > /dev/null 2>&1")) {
-		die($STATE_UNKNOWN." UNKNOWN - Unable to find whois binary in your path. Is it installed? Please specify path.");
-	}
+    // Create the array that will be passed to getopt
+    // Accepts an array of arrays, where each contained array has three 
+    // entries, the short option, the long option and required
+    foreach($specs as $spec) {    
+        if(!empty($spec['short'])) {
+            $shortopts .= "{$spec['short']}:";
+        }
+        if(!empty($spec['long'])) {
+            $longopts[] = "{$spec['long']}:";
+        }
+    }
+
+    // Parse with the builtin getopt function
+    $parsed = getopt($shortopts, $longopts);
+
+    // Make sure the input variables are sane. Also check to make sure that 
+    // all flags marked required are present.
+    foreach($specs as $spec) {
+        $l = $spec['long'];
+        $s = $spec['short'];
+
+        if(array_key_exists($l, $parsed) && array_key_exists($s, $parsed)) {
+            plugin_error("Command line parsing error: Inconsistent use of flag: ".$spec['long']);
+        }
+        if(array_key_exists($l, $parsed)) {
+            $opts[$l] = $parsed[$l];
+        }
+        elseif(array_key_exists($s, $parsed)) {
+            $opts[$l] = $parsed[$s];
+        }
+        elseif($spec['required'] == true) {
+            plugin_error("Command line parsing error: Required variable ".$spec['long']." not present.");
+        }
+    }
+    return $opts;
+
 }
 
-$options['P'] = $whois;
-$options['path'] = $whois;
-
-//check command options
-foreach ($options as $opts) {
-
-	switch ($opts) {
-
-		case "-c":
-			$critical = $options['c'];
-			break;
-
-		case "--critical":
-			$critical = $options['critical'];
-			break;
-
-		case "-w":			
-			$warning = $options['w'];
-			break;
-
-		case "--warning":
-			$warning = $options['warning'];
-			break;
-
-		case "-d":
-			$domain = $options['d'];
-			break;
-
-		case "--domain":
-			$domain = $options['domain'];
-			break;
-
-		case "-h":
-			fullusage();
-			exit(STATUS_UNKNOWN);
-
-		case "--help":
-			fullusage();
-			exit(STATUS_UNKNOWN);
-
-		// default:
-		// 	echo "*Unrecognized Argument Given*\n\n";
-		// 	fullusage();
-		// 	exit(STATUS_UNKNOWN);
-	}
+function debug_logging($message) {
+    if(DEBUG) {
+        echo $message;
+    }
 }
 
-//get the expiration date string for our given domain
-$execout = "";
-if (array_key_exists('d', $options)) {
-	exec('whois '.$options['d'].' | grep -i \'expir\|renew\|paid-till\'', $execout);
-} elseif (array_key_exists('domain', $options)) {
-	exec('whois'.$options['domain'].' | grep -i \'expir\|renew\|paid-till\'', $execout);
-} else {
-	echo "No domain specified or an internal error occured!";
+function plugin_error($error_message) {
+    print("***ERROR***:\n\n{$error_message}\n\n");
+    fullusage();
+    nagios_exit('', STATUS_UNKNOWN);
 }
 
-//main plugin functionality
-$raw_date = $execout[0];
-$offset = strpos($raw_date, ":")+1;
-
-if ($offset !== false) {
-	$date = trim(substr($raw_date, $offset));
-	$pdate = format_dates($date,$format='mdy');
+function nagios_exit($stdout='', $exitcode=0) {
+    print($stdout);
+    exit($exitcode);
 }
 
-$expire_seconds = strtotime($pdate);
-$expire_date = $pdate;
-$current_seconds = time();
-$diff_seconds = $expire_seconds - $current_seconds;
-$expire_days = round($diff_seconds / 86400);
+function main() {
+    $options = parse_args();
+    
+    if(array_key_exists('version', $options)) {
+        print('Plugin version: '.VERSION);
+        fullusage();
+        nagios_exit('', STATUS_OK);
+    }
 
-var_dump($warning, $critical);
-
-//plugin output
-if ($expire_days < 0) {
-	exit(STATUS_CRITICAL." CRITICAL - Domain ".$domain." expired on ".$expire_date."\n\n");
-} elseif ($expire_days < $critical) {
-	exit(STATUS_CRITICAL." CRITICAL - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n");
-} elseif ($expire_days < $warning) {
-	exit(STATUS_WARNING." WARNING - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n");
-} else {
-	exit(STATUS_OK." OK - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n");
+    check_environment();
+    check_domain($options);
 }
+
+function check_environment() {
+    exec('which whois 2>&1', $execout, $return_var);
+    $whois_path = $execout[0];
+
+    if ($return_var != 0) {
+        plugin_error("whois is not installed in your system.");
+    }
+}
+
+function check_domain($options) {
+    //get the expiration date string for our given domain
+    $execout = "";
+    $domain = $options['domain'];
+
+    $cmd = 'whois '.$domain.' | grep -i \'expir\|renew\|paid-till\'';
+    exec($cmd, $execout, $exitcode);
+
+    if($exitcode != 0) {
+        nagios_exit('Error running whois: '.implode('\n', $execout), STATUS_UNKNOWN);
+    }
+
+    //main plugin functionality
+    $raw_date = $execout[0];
+    $offset = strpos($raw_date, ":")+1;
+
+    if ($offset !== false) {
+        $date = trim(substr($raw_date, $offset));
+        $pdate = format_dates($date,$format='mdy');
+    }
+
+    $expire_seconds = strtotime($pdate);
+    $expire_date = $pdate;
+    $current_seconds = time();
+    $diff_seconds = $expire_seconds - $current_seconds;
+    $expire_days = round($diff_seconds / 86400);
+
+    $warning = (!empty($options['warning'])) ? $options['warning'] : null;
+    $critical = (!empty($options['critical'])) ? $options['critical'] : null;
+
+    //plugin output
+    if ($critical !== null && $expire_days < $critical) {
+        nagios_exit("CRITICAL - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n", STATUS_CRITICAL);
+    } elseif ($warning !== null && $expire_days < $warning) {
+        nagios_exit("WARNING - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n", STATUS_WARNING);
+    } else {
+        nagios_exit("OK - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n", STATUS_OK);
+    }
+}
+
 
 //worker functions
 function format_dates (&$res, $format='mdy') {
@@ -263,8 +279,9 @@ function get_date($date, $format) {
 
 function fullusage() {
 print(
-	"check_domain.php - v1.0.0
-	Copyright (c) 2005 Tomàs Núñez Lirola <tnunez@criptos.com>, 2009-2014 Elan Ruusamäe <glen@pld-linux.org>
+	"check_domain.php - v".VERSION."
+        Copyright (c) 2005 Tomàs Núñez Lirola <tnunez@criptos.com>, 
+                      2009-2014 Elan Ruusamäe <glen@pld-linux.org>
 	Under GPL v2 License
 
 	This plugin checks the expiration date of a domain name.
@@ -287,4 +304,6 @@ print(
 	     $./".PROGRAM." -d www.nagios.com -w 30 -c 10 \n\n"
     );
 }
+
+main();
 ?>
