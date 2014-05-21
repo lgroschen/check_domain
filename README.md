@@ -16,12 +16,12 @@ A Nagios plugin for checking a domain expiration date by registry name.
 Usage:
 
 	$./check_domain.php -d nagios.org
-	OK - Domain nagios.com will expire in 248 days (2014-10-04)
+	OK - Domain nagios.org will expire in 248 days (2015-10-04)
 
 Full Usage:
 
 	check_domain.php - v1.0.0
-        Copyright (c) 2005 Tomàs Núñez Lirola <tnunez@criptos.com>, 
+        Copyright (c) 2014 Nagios Enterprises <lgroschen@nagios.com>, 
                       2009-2014 Elan Ruusamäe <glen@pld-linux.org>
 	Under GPL v2 License
 
@@ -42,4 +42,4 @@ Full Usage:
 
 	This plugin will use the whois service to get the expiration date for the domain name.
 	Example:
-	     $./check_domain.php -d www.nagios.com -w 30 -c 10 \n\n"
+	     $./check_domain.php -d nagios.com -w 30 -c 10 \n\n"
