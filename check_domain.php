@@ -149,9 +149,9 @@ function check_domain($options) {
     $critical = (!empty($options['critical'])) ? $options['critical'] : null;
 
     //plugin output
-    if ($critical !== null && $expire_days < $critical) {
+    if ($critical !== null && $expire_days <= $critical) {
         nagios_exit("CRITICAL - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n", STATUS_CRITICAL);
-    } elseif ($warning !== null && $expire_days < $warning) {
+    } elseif ($warning !== null && $expire_days <= $warning) {
         nagios_exit("WARNING - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n", STATUS_WARNING);
     } else {
         nagios_exit("OK - Domain ".$domain." will expire in ".$expire_days." days (".$expire_date.").\n\n", STATUS_OK);
