@@ -2,18 +2,17 @@
 <?php
 // Check Domain PLUGIN
 //
-// Copyright (c) 2014 Nagios Enterprises, LLC.  All rights reserved.
+// Copyright (c) 2014 Luke Groschen, Nagios Enterprises, LLC.  All rights reserved.
 //  
 // $Id: $lgroschen@nagios.com
 
 define("PROGRAM", 'check_domain.php');
-define("VERSION", '1.0.0');
+define("VERSION", '1.1.0');
 define("STATUS_OK", 0);
 define("STATUS_WARNING",  1);
 define("STATUS_CRITICAL", 2);
 define("STATUS_UNKNOWN", 3);
 define("DEBUG", true);
-
 
 
 function parse_args() {
@@ -28,6 +27,9 @@ function parse_args() {
                          'required' => false),
                    array('short' => 'w', 
                          'long' => 'warning', 
+                         'required' => false),
+                   array('short' => 's', 
+                         'long' => 'whoisServer', 
                          'required' => false)
     );
     
@@ -122,8 +124,15 @@ function check_domain($options) {
     //get the expiration date string for our given domain
     $execout = "";
     $domain = $options['domain'];
+    $server = (!empty($options['whoisServer'])) ? $options['whoisServer'] : null;
 
-    $cmd = 'whois '.$domain.' | grep -i \'expir\|renew\|paid-till\'';
+    if ($server !== null) {
+    	$whois_server = "-h " . $server;
+    } else {
+    	$whois_server = null;
+    }
+
+    $cmd = 'whois '.$domain.' '. $whois_server .' | grep -i \'expir\|renew\|paid-till\'';
     exec($cmd, $execout, $exitcode);
 
     if($exitcode != 0) {
@@ -280,14 +289,13 @@ function get_date($date, $format) {
 function fullusage() {
 print(
 	"check_domain.php - v".VERSION."
-        Copyright (c) 2005 Tomàs Núñez Lirola <tnunez@criptos.com>, 
-                      2009-2014 Elan Ruusamäe <glen@pld-linux.org>,
-                      2014 Nagios Enterprises <lgroschen@nagios.com>
-		Under GPL v2 License
+        Copyright (c) 2014 Luke Groschen, Nagios Enterprises <lgroschen@nagios.com>, 
+                      2009-2014 Elan Ruusamäe <glen@pld-linux.org>
+	Under GPL v2 License
 
 	This plugin checks the expiration date of a domain name.
 
-	Usage: ".PROGRAM." -h | -d <domain> [-c <critical>] [-w <warning>]
+	Usage: ".PROGRAM." -h | -d <domain> [-c <critical>] [-w <warning>] [-s <whoisServer>]
 	NOTE: -d must be specified
 
 	Options:
@@ -299,10 +307,12 @@ print(
 	     Response time to result in warning status (days)
 	-c
 	     Response time to result in critical status (days)
+	-s
+		 Specify a whois server (whois.internic.net by default)
 
 	This plugin will use the whois service to get the expiration date for the domain name.
 	Example:
-	     $./".PROGRAM." -d www.nagios.com -w 30 -c 10 \n\n"
+	     $./".PROGRAM." -d nagios.com -w 30 -c 10 \n\n"
     );
 }
 

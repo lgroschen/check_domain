@@ -20,14 +20,14 @@ Usage:
 
 Full Usage:
 
-	check_domain.php - v1.0.0
-        Copyright (c) 2014 Nagios Enterprises <lgroschen@nagios.com>, 
+	check_domain.php - v1.1.0
+        Copyright (c) 2014 Luke Groschen, Nagios Enterprises <lgroschen@nagios.com>, 
                       2009-2014 Elan Ruusamäe <glen@pld-linux.org>
 	Under GPL v2 License
 
 	This plugin checks the expiration date of a domain name.
 
-	Usage: check_domain.php -h | -d <domain> [-c <critical>] [-w <warning>]
+	Usage: check_domain.php -h | -d <domain> [-c <critical>] [-w <warning>] [-s <whoisServer>]
 	NOTE: -d must be specified
 
 	Options:
@@ -39,6 +39,8 @@ Full Usage:
 	     Response time to result in warning status (days)
 	-c
 	     Response time to result in critical status (days)
+	-s
+		 Specify a whois server (whois.internic.net by default)
 
 	This plugin will use the whois service to get the expiration date for the domain name.
 	Example:
