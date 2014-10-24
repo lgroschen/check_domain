@@ -132,7 +132,7 @@ function check_domain($options) {
     	$whois_server = null;
     }
 
-    $cmd = 'whois '.$domain.' '. $whois_server .' | grep -i \'expir\|renew\|paid-till\'';
+    $cmd = 'whois '. escapeshellarg($domain) .' '. escapeshellarg($whois_server) .' | grep -i \'expir\|renew\|paid-till\'';
     exec($cmd, $execout, $exitcode);
 
     if($exitcode != 0) {
