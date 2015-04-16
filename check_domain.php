@@ -123,16 +123,16 @@ function check_environment() {
 function check_domain($options) {
     //get the expiration date string for our given domain
     $execout = "";
-    $domain = $options['domain'];
+    $domain = escapeshellarg($options['domain']);
     $server = (!empty($options['whoisServer'])) ? $options['whoisServer'] : null;
 
     if ($server !== null) {
-    	$whois_server = "-h " . $server;
+    	$whois_server = "-h " . escapeshellarg($server);
     } else {
     	$whois_server = null;
     }
 
-    $cmd = 'whois '. escapeshellarg($domain) .' '. escapeshellarg($whois_server) .' | grep -i \'expir\|renew\|paid-till\'';
+    $cmd = "whois $domain $whois_server | grep -i 'expir\|renew\|paid-till'";
     exec($cmd, $execout, $exitcode);
 
     if($exitcode != 0) {
